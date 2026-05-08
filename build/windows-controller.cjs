@@ -51822,6 +51822,40 @@ function openBrowser(url2) {
   });
   child.unref();
 }
+function resolveNodeExecutable() {
+  const fromEnv = process.env.WA_NODE_EXE;
+  if (fromEnv && import_node_fs.default.existsSync(fromEnv)) {
+    return fromEnv;
+  }
+  const whereResult = (0, import_node_child_process.spawnSync)("where", ["node"], {
+    windowsHide: true,
+    encoding: "utf-8"
+  });
+  if (whereResult.status === 0 && whereResult.stdout) {
+    const first2 = String(whereResult.stdout).split(/\r?\n/).map((line) => line.trim()).find(Boolean);
+    if (first2 && import_node_fs.default.existsSync(first2)) {
+      return first2;
+    }
+  }
+  const commonPaths = [
+    import_node_path5.default.join(process.env.ProgramFiles || "", "nodejs", "node.exe"),
+    import_node_path5.default.join(process.env["ProgramFiles(x86)"] || "", "nodejs", "node.exe"),
+    import_node_path5.default.join(process.env.LocalAppData || "", "Programs", "nodejs", "node.exe")
+  ].filter(Boolean);
+  for (const candidate of commonPaths) {
+    if (candidate && import_node_fs.default.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error("Node.js executable was not found. Install Node.js 18+ and retry.");
+}
+function resolveDashboardEntry(cwd) {
+  const entry = import_node_path5.default.join(cwd, "src", "index.js");
+  if (!import_node_fs.default.existsSync(entry)) {
+    throw new Error(`Dashboard entry file was not found at ${entry}`);
+  }
+  return entry;
+}
 async function startDashboardServer(options) {
   const outputDir = resolveOutputDir(options.outputDir);
   const port = Number(options.port || 8090);
@@ -51838,14 +51872,14 @@ async function startDashboardServer(options) {
     await clearStalePidFile(pidFilePath);
   }
   const logFd = import_node_fs.default.openSync(logFilePath, "a");
+  const workingDir = process.cwd();
+  const nodeExecutable = resolveNodeExecutable();
+  const dashboardEntry = resolveDashboardEntry(workingDir);
   const child = (0, import_node_child_process.spawn)(
-    "cmd.exe",
+    nodeExecutable,
     [
-      "/c",
-      "npm.cmd",
-      "run",
+      dashboardEntry,
       "dashboard",
-      "--",
       "--output-dir",
       outputDir,
       "--port",
@@ -51857,7 +51891,7 @@ async function startDashboardServer(options) {
       detached: true,
       stdio: ["ignore", logFd, logFd],
       windowsHide: true,
-      cwd: process.cwd()
+      cwd: workingDir
     }
   );
   import_node_fs.default.closeSync(logFd);

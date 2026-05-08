@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { Command } from "commander";
 import { runDashboard } from "./dashboard.js";
 
@@ -60,6 +60,52 @@ function openBrowser(url) {
   child.unref();
 }
 
+function resolveNodeExecutable() {
+  const fromEnv = process.env.WA_NODE_EXE;
+  if (fromEnv && fsSync.existsSync(fromEnv)) {
+    return fromEnv;
+  }
+
+  const whereResult = spawnSync("where", ["node"], {
+    windowsHide: true,
+    encoding: "utf-8"
+  });
+
+  if (whereResult.status === 0 && whereResult.stdout) {
+    const first = String(whereResult.stdout)
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .find(Boolean);
+
+    if (first && fsSync.existsSync(first)) {
+      return first;
+    }
+  }
+
+  const commonPaths = [
+    path.join(process.env.ProgramFiles || "", "nodejs", "node.exe"),
+    path.join(process.env["ProgramFiles(x86)"] || "", "nodejs", "node.exe"),
+    path.join(process.env.LocalAppData || "", "Programs", "nodejs", "node.exe")
+  ].filter(Boolean);
+
+  for (const candidate of commonPaths) {
+    if (candidate && fsSync.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  throw new Error("Node.js executable was not found. Install Node.js 18+ and retry.");
+}
+
+function resolveDashboardEntry(cwd) {
+  const entry = path.join(cwd, "src", "index.js");
+  if (!fsSync.existsSync(entry)) {
+    throw new Error(`Dashboard entry file was not found at ${entry}`);
+  }
+
+  return entry;
+}
+
 async function startDashboardServer(options) {
   const outputDir = resolveOutputDir(options.outputDir);
   const port = Number(options.port || 8090);
@@ -80,15 +126,15 @@ async function startDashboardServer(options) {
   }
 
   const logFd = fsSync.openSync(logFilePath, "a");
+  const workingDir = process.cwd();
+  const nodeExecutable = resolveNodeExecutable();
+  const dashboardEntry = resolveDashboardEntry(workingDir);
 
   const child = spawn(
-    "cmd.exe",
+    nodeExecutable,
     [
-      "/c",
-      "npm.cmd",
-      "run",
+      dashboardEntry,
       "dashboard",
-      "--",
       "--output-dir",
       outputDir,
       "--port",
@@ -100,7 +146,7 @@ async function startDashboardServer(options) {
       detached: true,
       stdio: ["ignore", logFd, logFd],
       windowsHide: true,
-      cwd: process.cwd()
+      cwd: workingDir
     }
   );
 

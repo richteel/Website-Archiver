@@ -165,6 +165,11 @@ Notes:
 - `dist/website-archiver-control.exe` is the GUI app for double-click launch.
 - The UI app uses `dist/website-archiver-control-cli.exe` internally.
 - If you move the UI EXE outside this repository, set environment variable `WA_CONTROL_EXE` to the full path of `website-archiver-control-cli.exe`.
+- On startup, the UI app checks prerequisites:
+	- Node.js 18+ installed (offers automatic install with `winget` if missing)
+	- `node_modules` present (runs `npm.cmd install` automatically on first run)
+	- CLI controller present (runs `npm.cmd run build:windows-cli` automatically if missing)
+- Starting the dashboard from the Windows app runs it as a hidden background process (no command window).
 
 ## Output Layout
 
