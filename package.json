@@ -1,0 +1,43 @@
+{
+  "name": "website-archiver",
+  "version": "1.0.0",
+  "description": "Archive websites by domain with snapshot diff reporting.",
+  "type": "module",
+  "bin": {
+    "website-archiver": "src/index.js"
+  },
+  "scripts": {
+    "archive": "node src/index.js archive",
+    "dashboard": "node src/index.js dashboard",
+    "serve": "node src/index.js serve",
+    "report": "node src/index.js report",
+    "build:windows-controller": "esbuild src/windows-controller.js --bundle --platform=node --format=cjs --target=node18 --outfile=build/windows-controller.cjs",
+    "build:windows-cli": "npm run build:windows-controller && pkg build/windows-controller.cjs --targets node18-win-x64 --output dist/website-archiver-control-cli.exe",
+    "build:windows-ui": "dotnet publish .\\windows-ui\\WebsiteArchiverControlApp\\WebsiteArchiverControlApp.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true && copy /Y .\\windows-ui\\WebsiteArchiverControlApp\\bin\\Release\\net9.0-windows\\win-x64\\publish\\WebsiteArchiverControlApp.exe .\\dist\\website-archiver-control.exe",
+    "build:windows-exe": "npm run build:windows-cli && npm run build:windows-ui"
+  },
+  "keywords": [
+    "archive",
+    "crawler",
+    "snapshot",
+    "offline"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "cheerio": "1.0.0-rc.12",
+    "commander": "^13.1.0",
+    "express": "^4.21.2",
+    "mime-types": "^2.1.35"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.4",
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "outputPath": "dist",
+    "targets": [
+      "node18-win-x64"
+    ]
+  }
+}

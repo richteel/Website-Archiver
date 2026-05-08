@@ -198,6 +198,16 @@ AutoTest.Net/
 
 # DocProject is a documentation generator add-in
 DocProject/buildhelp/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime output
+archives/
 DocProject/Help/*.HxT
 DocProject/Help/*.HxC
 DocProject/Help/*.hhc
@@ -427,3 +437,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Archived Sites
+archives/*.*
+
+# Windows Executable files from build outputs
+*.exe
